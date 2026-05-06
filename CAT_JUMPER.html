@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Plateforme 3D</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Fredoka', sans-serif;
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100vh;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 24px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
+            z-index: 10;
+            background: rgba(0,0,0,0.3);
+            padding: 15px 25px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            display: none;
+        }
+        
+        #menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.95) 0%, rgba(118, 75, 162, 0.95) 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        #menuContent {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 60px 80px;
+            border-radius: 30px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        #menuContent h1 {
+            color: white;
+            font-size: 48px;
+            margin-bottom: 40px;
+            text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.5);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .menuButton {
+            display: block;
+            width: 300px;
+            padding: 20px 40px;
+            margin: 20px auto;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: white;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .menuButton:hover:not(:disabled) {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(135deg, #ff8e53 0%, #ff6b6b 100%);
+        }
+        
+        .menuButton:active:not(:disabled) {
+            transform: translateY(-2px) scale(1.02);
+        }
+        
+        .menuButton:disabled {
+            background: linear-gradient(135deg, #666 0%, #888 100%);
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        #onlineBtn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        #onlineBtn:hover:not(:disabled) {
+            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+        }
+        
+        #connectionStatus {
+            margin-top: 20px;
+            font-size: 18px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            text-align: center;
+            font-size: 16px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.3);
+            padding: 15px 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            display: none;
+        }
+        
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 48px;
+            text-shadow: 4px 4px 8px rgba(0,0,0,0.7);
+            text-align: center;
+            display: none;
+            animation: bounce 0.5s ease-in-out infinite alternate;
+        }
+        
+        @keyframes bounce {
+            from { transform: translate(-50%, -50%) scale(1); }
+            to { transform: translate(-50%, -50%) scale(1.1); }
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        🐱 Niveau: <span id="level">1</span> | 
+        ⭐ Score: <span id="score">0</span>
+    </div>
+    
+    <div id="menu">
+        <div id="menuContent">
+            <h1>🐱 CHAT PLATEFORME 3D 🐱</h1>
+            <button id="playBtn" class="menuButton">▶️ PLAY</button>
+            <button id="onlineBtn" class="menuButton" disabled>☁️ ONLINE</button>
+            <div id="connectionStatus"></div>
+        </div>
+    </div>
+    
+    <div id="controls">
+        ⬆️ Flèche HAUT (Avant) | ⬇️ Flèche BAS (Arrière) | ⬅️ Flèche GAUCHE | ➡️ Flèche DROITE | ⬆️ ESPACE (Sauter) | 🔄 R (Recommencer)
+    </div>
+    
+    <div id="message"></div>
+    
+    <canvas id="gameCanvas"></canvas>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Configuration du jeu
+        const canvas = document.getElementById('gameCanvas');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87ceeb);
+        scene.fog = new THREE.Fog(0x87ceeb, 10, 100);
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        
+        // Lumières
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 10, 5);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.camera.left = -20;
+        directionalLight.shadow.camera.right = 20;
+        directionalLight.shadow.camera.top = 20;
+        directionalLight.shadow.camera.bottom = -20;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        scene.add(directionalLight);
+        
+        // Variables du jeu
+        let player, platforms = [], collectibles = [];
+        let velocity = new THREE.Vector3(0, 0, 0);
+        let isJumping = false;
+        let canJump = true;
+        let level = 1;
+        let score = 0;
+        const gravity = -0.02;
+        const moveSpeed = 0.15;
+        const jumpForce = 0.4;
+        let gameStarted = false;
+        
+        // Vérifier la connexion internet
+        function checkInternetConnection() {
+            const onlineBtn = document.getElementById('onlineBtn');
+            const statusDiv = document.getElementById('connectionStatus');
+            
+            if (navigator.onLine) {
+                onlineBtn.disabled = false;
+                statusDiv.innerHTML = '✅ Connexion Internet détectée';
+                statusDiv.style.color = '#4fffb0';
+            } else {
+                onlineBtn.disabled = true;
+                statusDiv.innerHTML = '❌ Pas de connexion Internet';
+                statusDiv.style.color = '#ff6b6b';
+            }
+        }
+        
+        // Écouter les changements de connexion
+        window.addEventListener('online', checkInternetConnection);
+        window.addEventListener('offline', checkInternetConnection);
+        
+        // Boutons du menu
+        document.getElementById('playBtn').addEventListener('click', function() {
+            startGame(false);
+        });
+        
+        document.getElementById('onlineBtn').addEventListener('click', function() {
+            if (navigator.onLine) {
+                startGame(true);
+            }
+        });
+        
+        // Démarrer le jeu
+        function startGame(isOnline) {
+            gameStarted = true;
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById('ui').style.display = 'block';
+            document.getElementById('controls').style.display = 'block';
+            
+            if (isOnline) {
+                showMessage('🌐 Mode ONLINE activé! ☁️');
+                setTimeout(hideMessage, 2000);
+            }
+        }
+        
+        // Vérifier la connexion au chargement
+        checkInternetConnection();
+        
+        // Contrôles
+        const keys = {
+            left: false,
+            right: false,
+            forward: false,
+            backward: false,
+            jump: false
+        };
+        
+        // Créer le chat (joueur)
+        function createCat() {
+            const cat = new THREE.Group();
+            
+            // Corps
+            const bodyGeometry = new THREE.BoxGeometry(0.8, 0.6, 1);
+            const bodyMaterial = new THREE.MeshPhongMaterial({ color: 0xff8c42 });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.castShadow = true;
+            body.position.y = 0.3;
+            cat.add(body);
+            
+            // Tête
+            const headGeometry = new THREE.SphereGeometry(0.4, 16, 16);
+            const headMaterial = new THREE.MeshPhongMaterial({ color: 0xff8c42 });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.castShadow = true;
+            head.position.set(0, 0.8, 0.3);
+            head.scale.set(1, 0.9, 1);
+            cat.add(head);
+            
+            // Oreilles
+            const earGeometry = new THREE.ConeGeometry(0.15, 0.3, 4);
+            const earMaterial = new THREE.MeshPhongMaterial({ color: 0xff8c42 });
+            
+            const leftEar = new THREE.Mesh(earGeometry, earMaterial);
+            leftEar.castShadow = true;
+            leftEar.position.set(-0.2, 1.1, 0.3);
+            leftEar.rotation.z = -0.3;
+            cat.add(leftEar);
+            
+            const rightEar = new THREE.Mesh(earGeometry, earMaterial);
+            rightEar.castShadow = true;
+            rightEar.position.set(0.2, 1.1, 0.3);
+            rightEar.rotation.z = 0.3;
+            cat.add(rightEar);
+            
+            // Yeux
+            const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+            const eyeMaterial = new THREE.MeshPhongMaterial({ color: 0x000000 });
+            
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.15, 0.85, 0.6);
+            cat.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.15, 0.85, 0.6);
+            cat.add(rightEye);
+            
+            // Queue
+            const tailGeometry = new THREE.CylinderGeometry(0.1, 0.05, 1, 8);
+            const tailMaterial = new THREE.MeshPhongMaterial({ color: 0xff8c42 });
+            const tail = new THREE.Mesh(tailGeometry, tailMaterial);
+            tail.castShadow = true;
+            tail.position.set(0, 0.5, -0.8);
+            tail.rotation.x = Math.PI / 3;
+            cat.add(tail);
+            
+            cat.position.set(0, 2, 0);
+            scene.add(cat);
+            return cat;
+        }
+        
+        // Créer une plateforme
+        function createPlatform(x, y, z, width = 3, depth = 3, color = 0x4a90e2) {
+            const geometry = new THREE.BoxGeometry(width, 0.5, depth);
+            const material = new THREE.MeshPhongMaterial({ color });
+            const platform = new THREE.Mesh(geometry, material);
+            platform.position.set(x, y, z);
+            platform.receiveShadow = true;
+            platform.castShadow = true;
+            scene.add(platform);
+            platforms.push({
+                mesh: platform,
+                bounds: {
+                    minX: x - width / 2,
+                    maxX: x + width / 2,
+                    minZ: z - depth / 2,
+                    maxZ: z + depth / 2,
+                    y: y + 0.25
+                }
+            });
+            return platform;
+        }
+        
+        // Créer un collectible (étoile)
+        function createCollectible(x, y, z) {
+            const geometry = new THREE.OctahedronGeometry(0.3);
+            const material = new THREE.MeshPhongMaterial({ 
+                color: 0xffff00,
+                emissive: 0xffff00,
+                emissiveIntensity: 0.5
+            });
+            const star = new THREE.Mesh(geometry, material);
+            star.position.set(x, y, z);
+            star.castShadow = true;
+            scene.add(star);
+            collectibles.push({ mesh: star, collected: false });
+            return star;
+        }
+        
+        // Créer le niveau
+        function createLevel(levelNum) {
+            // Nettoyer l'ancien niveau
+            platforms.forEach(p => scene.remove(p.mesh));
+            collectibles.forEach(c => scene.remove(c.mesh));
+            platforms = [];
+            collectibles = [];
+            
+            // Plateforme de départ
+            createPlatform(0, 0, 0, 4, 4, 0x4a90e2);
+            
+            if (levelNum === 1) {
+                createPlatform(5, 1, 0, 3, 3, 0x4a90e2);
+                createPlatform(10, 2, 0, 3, 3, 0x4a90e2);
+                createPlatform(15, 1, 0, 3, 3, 0x4a90e2);
+                createPlatform(20, 3, 0, 4, 4, 0x50c878);
+                
+                createCollectible(5, 2.5, 0);
+                createCollectible(10, 3.5, 0);
+                createCollectible(20, 4.5, 0);
+            } else if (levelNum === 2) {
+                createPlatform(4, 1, 2, 2, 2, 0x4a90e2);
+                createPlatform(7, 2, -2, 2, 2, 0x4a90e2);
+                createPlatform(11, 3, 1, 2, 2, 0x4a90e2);
+                createPlatform(15, 4, -1, 2, 2, 0x4a90e2);
+                createPlatform(19, 2, 2, 2, 2, 0x4a90e2);
+                createPlatform(23, 5, 0, 4, 4, 0x50c878);
+                
+                createCollectible(7, 3.5, -2);
+                createCollectible(11, 4.5, 1);
+                createCollectible(15, 5.5, -1);
+                createCollectible(23, 6.5, 0);
+            } else {
+                // Niveau 3 - plus difficile
+                createPlatform(3, 1, 0, 2, 2, 0x4a90e2);
+                createPlatform(6, 2, -3, 2, 2, 0x4a90e2);
+                createPlatform(9, 3, 0, 2, 2, 0x4a90e2);
+                createPlatform(12, 4, 3, 2, 2, 0x4a90e2);
+                createPlatform(16, 3, 0, 2, 2, 0x4a90e2);
+                createPlatform(20, 5, -2, 2, 2, 0x4a90e2);
+                createPlatform(24, 6, 0, 4, 4, 0x50c878);
+                
+                createCollectible(6, 3.5, -3);
+                createCollectible(12, 5.5, 3);
+                createCollectible(20, 6.5, -2);
+                createCollectible(24, 7.5, 0);
+            }
+        }
+        
+        // Initialiser le jeu
+        player = createCat();
+        createLevel(level);
+        
+        // Caméra suit le joueur (vue RPG)
+        function updateCamera() {
+            camera.position.x = player.position.x - 8;
+            camera.position.y = player.position.y + 12;
+            camera.position.z = player.position.z + 8;
+            camera.lookAt(player.position.x, player.position.y, player.position.z);
+        }
+        
+        // Vérifier collision avec plateforme
+        function checkPlatformCollision() {
+            for (let platform of platforms) {
+                const bounds = platform.bounds;
+                
+                if (player.position.x > bounds.minX && player.position.x < bounds.maxX &&
+                    player.position.z > bounds.minZ && player.position.z < bounds.maxZ) {
+                    
+                    if (velocity.y <= 0 && player.position.y <= bounds.y + 1 && player.position.y > bounds.y - 0.5) {
+                        player.position.y = bounds.y + 1;
+                        velocity.y = 0;
+                        isJumping = false;
+                        canJump = true;
+                        
+                        // Vérifier si c'est la plateforme de fin
+                        if (platform.mesh.material.color.getHex() === 0x50c878) {
+                            nextLevel();
+                        }
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        
+        // Ramasser les collectibles
+        function checkCollectibles() {
+            collectibles.forEach(item => {
+                if (!item.collected) {
+                    const distance = player.position.distanceTo(item.mesh.position);
+                    if (distance < 1) {
+                        item.collected = true;
+                        scene.remove(item.mesh);
+                        score += 100;
+                        document.getElementById('score').textContent = score;
+                    }
+                }
+            });
+        }
+        
+        // Passer au niveau suivant
+        function nextLevel() {
+            level++;
+            if (level > 3) {
+                showMessage('🎉 Félicitations! Tu as gagné! 🎉');
+                setTimeout(() => {
+                    level = 1;
+                    score = 0;
+                    resetGame();
+                }, 3000);
+            } else {
+                showMessage('Niveau ' + level + ' !');
+                setTimeout(() => {
+                    hideMessage();
+                }, 1500);
+                resetLevel();
+            }
+        }
+        
+        // Réinitialiser le niveau
+        function resetLevel() {
+            player.position.set(0, 2, 0);
+            velocity.set(0, 0, 0);
+            createLevel(level);
+            document.getElementById('level').textContent = level;
+        }
+        
+        // Réinitialiser le jeu
+        function resetGame() {
+            player.position.set(0, 2, 0);
+            velocity.set(0, 0, 0);
+            level = 1;
+            score = 0;
+            createLevel(level);
+            document.getElementById('level').textContent = level;
+            document.getElementById('score').textContent = score;
+            hideMessage();
+        }
+        
+        // Afficher message
+        function showMessage(text) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.style.display = 'block';
+        }
+        
+        function hideMessage() {
+            document.getElementById('message').style.display = 'none';
+        }
+        
+        // Gestion des touches
+        document.addEventListener('keydown', (e) => {
+            if (!gameStarted) return; // Bloquer les touches si le jeu n'a pas commencé
+            
+            if (e.code === 'ArrowLeft') {
+                keys.left = true;
+            }
+            if (e.code === 'ArrowRight') {
+                keys.right = true;
+            }
+            if (e.code === 'ArrowUp') {
+                keys.forward = true;
+            }
+            if (e.code === 'ArrowDown') {
+                keys.backward = true;
+            }
+            if (e.code === 'Space' && canJump && !isJumping) {
+                keys.jump = true;
+                velocity.y = jumpForce;
+                isJumping = true;
+                canJump = false;
+            }
+            if (e.code === 'KeyR') {
+                resetGame();
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            if (!gameStarted) return;
+            
+            if (e.code === 'ArrowLeft') {
+                keys.left = false;
+            }
+            if (e.code === 'ArrowRight') {
+                keys.right = false;
+            }
+            if (e.code === 'ArrowUp') {
+                keys.forward = false;
+            }
+            if (e.code === 'ArrowDown') {
+                keys.backward = false;
+            }
+            if (e.code === 'Space') {
+                keys.jump = false;
+            }
+        });
+        
+        // Boucle d'animation
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Mouvement horizontal et profondeur (style RPG)
+            let moveX = 0;
+            let moveZ = 0;
+            
+            if (keys.left) {
+                moveX = -moveSpeed;
+            }
+            if (keys.right) {
+                moveX = moveSpeed;
+            }
+            if (keys.forward) {
+                moveZ = -moveSpeed;
+            }
+            if (keys.backward) {
+                moveZ = moveSpeed;
+            }
+            
+            // Rotation du chat basée sur la direction du mouvement
+            if (moveX !== 0 || moveZ !== 0) {
+                const angle = Math.atan2(moveX, moveZ);
+                player.rotation.y = angle;
+            }
+            
+            velocity.x = moveX;
+            velocity.z = moveZ;
+            
+            // Gravité
+            velocity.y += gravity;
+            
+            // Appliquer la vélocité
+            player.position.add(velocity);
+            
+            // Vérifier collisions
+            const onPlatform = checkPlatformCollision();
+            
+            // Vérifier collectibles
+            checkCollectibles();
+            
+            // Rotation des collectibles
+            collectibles.forEach(item => {
+                if (!item.collected) {
+                    item.mesh.rotation.y += 0.02;
+                    item.mesh.position.y += Math.sin(Date.now() * 0.003) * 0.005;
+                }
+            });
+            
+            // Animation de la queue du chat
+            const tail = player.children.find(child => 
+                child.geometry && child.geometry.type === 'CylinderGeometry'
+            );
+            if (tail) {
+                tail.rotation.z = Math.sin(Date.now() * 0.005) * 0.2;
+            }
+            
+            // Tomber dans le vide
+            if (player.position.y < -5) {
+                resetLevel();
+                showMessage('Oups! Réessaye!');
+                setTimeout(hideMessage, 1500);
+            }
+            
+            updateCamera();
+            renderer.render(scene, camera);
+        }
+        
+        // Gestion du redimensionnement
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Démarrer l'animation
+        updateCamera();
+        animate();
+    </script>
+</body>
+</html>
